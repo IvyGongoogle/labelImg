@@ -120,6 +120,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.itemsToShapes = {}
         self.shapesToItems = {}
         self.prevLabelText = ''
+        self.preNumberOfObjectsText = '1'
 
         listLayout = QVBoxLayout()
         listLayout.setContentsMargins(0, 0, 0, 0)
@@ -235,7 +236,7 @@ class MainWindow(QMainWindow, WindowMixin):
                         'Ctrl+Shift+S', 'save-as', u'Save labels to a different file', enabled=False)
 
         close = action('&Close', self.closeFile, 'Ctrl+W', 'close', u'Close current file')
-        
+
         resetAll = action('&ResetAll', self.resetAll, None, 'resetall', u'Reset all')
 
         color1 = action('Box Line Color', self.chooseColor1,
@@ -360,6 +361,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.singleClassMode.setCheckable(True)
         self.singleClassMode.setChecked(settings.get(SETTING_SINGLE_CLASS, False))
         self.lastLabel = None
+        self.lastNumberOfObjects = None
 
         addActions(self.menus.file,
                    (open, opendir, changeSavedir, openAnnotation, self.menus.recentFiles, save, saveAs, close, resetAll, quit))
@@ -604,9 +606,10 @@ class MainWindow(QMainWindow, WindowMixin):
         if not self.canvas.editing():
             return
         item = self.currentItem()
-        text = self.labelDialog.popUp(item.text())
-        if text is not None:
-            item.setText(text)
+        text, text_numberOfObjects= self.labelDialog.popUp(item.text().split('///')[0], item.text().split('///')[1] )
+        if text is not None and text_numberOfObjects is not None:
+            item.setText(text + '///' + text_numberOfObjects)
+            item.setBackground(generateColorByText(text))
             self.setDirty()
 
     # Tzutalin 20160906 : Add file list and dock to move faster
@@ -661,7 +664,7 @@ class MainWindow(QMainWindow, WindowMixin):
         self.actions.shapeFillColor.setEnabled(selected)
 
     def addLabel(self, shape):
-        item = HashableQListWidgetItem(shape.label)
+        item = HashableQListWidgetItem(shape.label + '///'+ shape.numberOfObjects)
         item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
         item.setCheckState(Qt.Checked)
         item.setBackground(generateColorByText(shape.label))
@@ -682,8 +685,8 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def loadLabels(self, shapes):
         s = []
-        for label, points, line_color, fill_color, difficult in shapes:
-            shape = Shape(label=label)
+        for label, numberOfObjects, points, line_color, fill_color, difficult in shapes:
+            shape = Shape(label=label, numberOfObjects=numberOfObjects)
             for x, y in points:
                 shape.addPoint(QPointF(x, y))
             shape.difficult = difficult
@@ -699,7 +702,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 shape.fill_color = QColor(*fill_color)
             else:
                 shape.fill_color = generateColorByText(label)
-            
+
             self.addLabel(shape)
 
         self.canvas.loadShapes(s)
@@ -712,6 +715,7 @@ class MainWindow(QMainWindow, WindowMixin):
 
         def format_shape(s):
             return dict(label=s.label,
+                        numberOfObjects=s.numberOfObjects,
                         line_color=s.line_color.getRgb(),
                         fill_color=s.fill_color.getRgb(),
                         points=[(p.x(), p.y()) for p in s.points],
@@ -752,6 +756,7 @@ class MainWindow(QMainWindow, WindowMixin):
         label = item.text()
         if label != shape.label:
             shape.label = item.text()
+            shape.line_color = generateColorByText(shape.label)
             self.setDirty()
         else:  # User probably changed item visibility
             self.canvas.setShapeVisible(shape, item.checkState() == Qt.Checked)
@@ -765,23 +770,27 @@ class MainWindow(QMainWindow, WindowMixin):
         if not self.useDefaultLabelCheckbox.isChecked() or not self.defaultLabelTextLine.text():
             if len(self.labelHist) > 0:
                 self.labelDialog = LabelDialog(
-                    parent=self, listItem=self.labelHist)
+                    parent=self, listItem=self.labelHist, text_numberOfObjects=self.preNumberOfObjectsText)
 
             # Sync single class mode from PR#106
             if self.singleClassMode.isChecked() and self.lastLabel:
                 text = self.lastLabel
+                text_numberOfObjects= self.lastNumberOfObjects
             else:
-                text = self.labelDialog.popUp(text=self.prevLabelText)
+                (text, text_numberOfObjects) = self.labelDialog.popUp(text=self.prevLabelText, text_numberOfObjects=self.preNumberOfObjectsText)
                 self.lastLabel = text
+                self.lastNumberOfObjects = text_numberOfObjects
         else:
             text = self.defaultLabelTextLine.text()
 
         # Add Chris
         self.diffcButton.setChecked(False)
-        if text is not None:
+        if text is not None and text_numberOfObjects is not None:
             self.prevLabelText = text
+            self.preNumberOfObjectsText = text_numberOfObjects
             generate_color = generateColorByText(text)
-            shape = self.canvas.setLastLabel(text, generate_color, generate_color)
+            shape = self.canvas.setLastLabel(text, text_numberOfObjects, generate_color, generate_color)
+
             self.addLabel(shape)
             if self.beginner():  # Switch to edit mode.
                 self.canvas.setEditing(True)
@@ -912,7 +921,7 @@ class MainWindow(QMainWindow, WindowMixin):
                 # read data first and store for saving into label file.
                 self.imageData = read(unicodeFilePath, None)
                 self.labelFile = None
-                            
+
             image = QImage.fromData(self.imageData)
             if image.isNull():
                 self.errorMessage(u'Error opening file',
@@ -1081,10 +1090,10 @@ class MainWindow(QMainWindow, WindowMixin):
             defaultOpenDirPath = os.path.dirname(self.filePath) if self.filePath else '.'
 
         dirpath = ustr(QFileDialog.getExistingDirectory(self,
-                                                     '%s - Open Directory' % __appname__, defaultOpenDirPath,  
+                                                     '%s - Open Directory' % __appname__, defaultOpenDirPath,
                                                      QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks))
         self.importDirImages(dirpath)
-        
+
     def importDirImages(self, dirpath):
         if not self.mayContinue() or not dirpath:
             return

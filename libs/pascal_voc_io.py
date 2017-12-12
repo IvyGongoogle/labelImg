@@ -74,10 +74,11 @@ class PascalVocWriter:
         segmented.text = '0'
         return top
 
-    def addBndBox(self, xmin, ymin, xmax, ymax, name, difficult):
+    def addBndBox(self, xmin, ymin, xmax, ymax, name, difficult, numberOfObjects):
         bndbox = {'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax}
         bndbox['name'] = name
         bndbox['difficult'] = difficult
+        bndbox['numberOfObjects'] = numberOfObjects
         self.boxlist.append(bndbox)
 
     def appendObjects(self, top):
@@ -100,6 +101,11 @@ class PascalVocWriter:
                 truncated.text = "0"
             difficult = SubElement(object_item, 'difficult')
             difficult.text = str( bool(each_object['difficult']) & 1 )
+            numberOfObjects = SubElement(object_item, 'numberOfObjects')
+            try:
+                numberOfObjects.text = unicode(each_object['numberOfObjects'])
+            except UnicodeError:
+                numberOfObjects.text = each_object['numberOfObjects']
             bndbox = SubElement(object_item, 'bndbox')
             xmin = SubElement(bndbox, 'xmin')
             xmin.text = str(each_object['xmin'])
@@ -141,13 +147,13 @@ class PascalVocReader:
     def getShapes(self):
         return self.shapes
 
-    def addShape(self, label, bndbox, difficult):
+    def addShape(self, label, numberOfObjects, bndbox, difficult):
         xmin = int(bndbox.find('xmin').text)
         ymin = int(bndbox.find('ymin').text)
         xmax = int(bndbox.find('xmax').text)
         ymax = int(bndbox.find('ymax').text)
         points = [(xmin, ymin), (xmax, ymin), (xmax, ymax), (xmin, ymax)]
-        self.shapes.append((label, points, None, None, difficult))
+        self.shapes.append((label, numberOfObjects, points, None, None, difficult))
 
     def parseXML(self):
         assert self.filepath.endswith(XML_EXT), "Unsupport file format"
@@ -164,9 +170,14 @@ class PascalVocReader:
         for object_iter in xmltree.findall('object'):
             bndbox = object_iter.find("bndbox")
             label = object_iter.find('name').text
+            if object_iter.find('numberOfObjects') is None:
+                print ('if object_iter.find("numberOfObjects") is None:')
+                numberOfObjects = '1'
+            else:
+                numberOfObjects = object_iter.find('numberOfObjects').text
             # Add chris
             difficult = False
             if object_iter.find('difficult') is not None:
                 difficult = bool(int(object_iter.find('difficult').text))
-            self.addShape(label, bndbox, difficult)
+            self.addShape(label, numberOfObjects, bndbox, difficult)
         return True

@@ -13,7 +13,7 @@ BB = QDialogButtonBox
 
 class LabelDialog(QDialog):
 
-    def __init__(self, text="Enter object label", parent=None, listItem=None):
+    def __init__(self, text="Enter object label", text_numberOfObjects='Enter the number f objects', parent=None, listItem=None):
         super(LabelDialog, self).__init__(parent)
         self.edit = QLineEdit()
         self.edit.setText(text)
@@ -21,6 +21,9 @@ class LabelDialog(QDialog):
         self.edit.editingFinished.connect(self.postProcess)
         layout = QVBoxLayout()
         layout.addWidget(self.edit)
+        self.edit_numberOfObjects = QLineEdit()
+        self.edit_numberOfObjects.setText(text_numberOfObjects)
+        layout.addWidget(self.edit_numberOfObjects)
         self.buttonBox = bb = BB(BB.Ok | BB.Cancel, Qt.Horizontal, self)
         bb.button(BB.Ok).setIcon(newIcon('done'))
         bb.button(BB.Cancel).setIcon(newIcon('undo'))
@@ -53,13 +56,14 @@ class LabelDialog(QDialog):
             # PyQt5: AttributeError: 'str' object has no attribute 'trimmed'
             self.edit.setText(self.edit.text())
 
-    def popUp(self, text='', move=True):
+    def popUp(self, text='', text_numberOfObjects='', move=True):
         self.edit.setText(text)
+        self.edit_numberOfObjects.setText(text_numberOfObjects)
         self.edit.setSelection(0, len(text))
         self.edit.setFocus(Qt.PopupFocusReason)
         if move:
             self.move(QCursor.pos())
-        return self.edit.text() if self.exec_() else None
+        return (self.edit.text(), self.edit_numberOfObjects.text().trimmed()) if self.exec_() else (None, None)
 
     def listItemClick(self, tQListWidgetItem):
         try:
