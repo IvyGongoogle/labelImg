@@ -171,7 +171,6 @@ class PascalVocReader:
             bndbox = object_iter.find("bndbox")
             label = object_iter.find('name').text
             if object_iter.find('numberOfObjects') is None:
-                print ('if object_iter.find("numberOfObjects") is None:')
                 numberOfObjects = '1'
             else:
                 numberOfObjects = object_iter.find('numberOfObjects').text

@@ -15,14 +15,20 @@ class LabelDialog(QDialog):
 
     def __init__(self, text="Enter object label", text_numberOfObjects='Enter the number f objects', parent=None, listItem=None):
         super(LabelDialog, self).__init__(parent)
+        self.edit_label = QLabel()
+        self.edit_label.setText('Class:')
         self.edit = QLineEdit()
         self.edit.setText(text)
         self.edit.setValidator(labelValidator())
         self.edit.editingFinished.connect(self.postProcess)
         layout = QVBoxLayout()
+        layout.addWidget(self.edit_label)
         layout.addWidget(self.edit)
+        self.edit_numberOfObjects_label = QLabel()
+        self.edit_numberOfObjects_label.setText('The number Of Objects:')
         self.edit_numberOfObjects = QLineEdit()
         self.edit_numberOfObjects.setText(text_numberOfObjects)
+        layout.addWidget(self.edit_numberOfObjects_label)
         layout.addWidget(self.edit_numberOfObjects)
         self.buttonBox = bb = BB(BB.Ok | BB.Cancel, Qt.Horizontal, self)
         bb.button(BB.Ok).setIcon(newIcon('done'))
@@ -42,7 +48,7 @@ class LabelDialog(QDialog):
 
     def validate(self):
         try:
-            if self.edit.text().trimmed():
+            if self.edit.text().trimmed() and self.edit_numberOfObjects.text().trimmed():
                 self.accept()
         except AttributeError:
             # PyQt5: AttributeError: 'str' object has no attribute 'trimmed'
@@ -63,7 +69,7 @@ class LabelDialog(QDialog):
         self.edit.setFocus(Qt.PopupFocusReason)
         if move:
             self.move(QCursor.pos())
-        return (self.edit.text(), self.edit_numberOfObjects.text().trimmed()) if self.exec_() else (None, None)
+        return (self.edit.text(), self.edit_numberOfObjects.text()) if self.exec_() else (None, None)
 
     def listItemClick(self, tQListWidgetItem):
         try:

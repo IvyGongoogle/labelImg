@@ -607,9 +607,12 @@ class MainWindow(QMainWindow, WindowMixin):
             return
         item = self.currentItem()
         text, text_numberOfObjects= self.labelDialog.popUp(item.text().split('///')[0], item.text().split('///')[1] )
+
         if text is not None and text_numberOfObjects is not None:
-            item.setText(text + '///' + text_numberOfObjects)
+            item.setText(text +'///' + text_numberOfObjects)
             item.setBackground(generateColorByText(text))
+            self.lastLabel = text
+            self.lastNumberOfObjects = text_numberOfObjects
             self.setDirty()
 
     # Tzutalin 20160906 : Add file list and dock to move faster
@@ -721,7 +724,11 @@ class MainWindow(QMainWindow, WindowMixin):
                         points=[(p.x(), p.y()) for p in s.points],
                        # add chris
                         difficult = s.difficult)
-
+        for index, shape in enumerate(self.canvas.shapes):
+            shape_label_str=str(shape.label)
+            if len(shape_label_str.split('///'))>=2:
+                self.canvas.shapes[index].label=shape_label_str.split('///')[0]
+                self.canvas.shapes[index].numberOfObjects=shape_label_str.split('///')[1]
         shapes = [format_shape(shape) for shape in self.canvas.shapes]
         # Can add differrent annotation formats here
         try:
@@ -1189,7 +1196,9 @@ class MainWindow(QMainWindow, WindowMixin):
 
     def saveFile(self, _value=False):
         if self.defaultSaveDir is not None and len(ustr(self.defaultSaveDir)):
+
             if self.filePath:
+                
                 imgFileName = os.path.basename(self.filePath)
                 savedFileName = os.path.splitext(imgFileName)[0] + XML_EXT
                 savedPath = os.path.join(ustr(self.defaultSaveDir), savedFileName)

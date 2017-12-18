@@ -110,10 +110,12 @@ class Canvas(QWidget):
             if self.current:
                 color = self.drawingLineColor
                 if self.outOfPixmap(pos):
+                    print('@@@@@@@@@@@@@@@@@if self.outOfPixmap(pos) in def mouseMoveEvent(self, ev)::')
                     # Don't allow the user to draw outside the pixmap.
                     # Project the point to the pixmap's edges.
                     pos = self.intersectionPoint(self.current[-1], pos)
                 elif len(self.current) > 1 and self.closeEnough(pos, self.current[0]):
+                    print('@@@@@@@@@@@@@@@@@elif len(self.current) > 1 and self.closeEnough(pos, self.current[0]): in def mouseMoveEvent(self, ev):')
                     # Attract line to starting point and colorise to alert the
                     # user:
                     pos = self.current[0]
@@ -194,6 +196,7 @@ class Canvas(QWidget):
 
         if ev.button() == Qt.LeftButton:
             if self.drawing():
+                print('@@@@@@@@@@@@@if self.drawing(): in def mousePressEvent(self, ev):')
                 self.handleDrawing(pos)
             else:
                 self.selectShapePoint(pos)
@@ -224,6 +227,7 @@ class Canvas(QWidget):
                 self.handleDrawing(pos)
 
     def endMove(self, copy=False):
+        print('@@@@@@@@@@@@@@@@@def endMove(self, copy=False):')
         assert self.selectedShape and self.selectedShapeCopy
         shape = self.selectedShapeCopy
         #del shape.fill_color
@@ -247,6 +251,8 @@ class Canvas(QWidget):
 
     def handleDrawing(self, pos):
         if self.current and self.current.reachMaxPoints() is False:
+            print('@@@@@@@@@@@@@@@if self.current and self.current.reachMaxPoints() is False:')
+            print('###################self.current[0]', self.current[0])
             initPos = self.current[0]
             minX = initPos.x()
             minY = initPos.y()
@@ -258,6 +264,7 @@ class Canvas(QWidget):
             self.current.addPoint(QPointF(minX, maxY))
             self.finalise()
         elif not self.outOfPixmap(pos):
+            print('@@@@@@@@@@@@@@@elif not self.outOfPixmap(pos)   pos:',pos)
             self.current = Shape()
             self.current.addPoint(pos)
             self.line.points = [pos, pos]
@@ -370,12 +377,16 @@ class Canvas(QWidget):
 
     def copySelectedShape(self):
         if self.selectedShape:
+            print("@@@@@@@@@@@@@self.selectedShape",self.selectedShape)
             shape = self.selectedShape.copy()
+            print("@@@@@@@@@@@@@shape ", shape)
             self.deSelectShape()
             self.shapes.append(shape)
             shape.selected = True
             self.selectedShape = shape
             self.boundedShiftShape(shape)
+            print("@@@@@@@@@@@@@shape.numberOfObjects ", shape.numberOfObjects)
+            print("@@@@@@@@@@@@@type(shape.numberOfObjects) ", type(shape.numberOfObjects))
             return shape
 
     def boundedShiftShape(self, shape):
@@ -578,6 +589,7 @@ class Canvas(QWidget):
             self.moveOnePixel('Down')
 
     def moveOnePixel(self, direction):
+        print ("############# def moveOnePixel(self, direction): in",__file__)
         # print(self.selectedShape.points)
         if direction == 'Left' and not self.moveOutOfBound(QPointF(-1.0, 0)):
             # print("move Left one pixel")
